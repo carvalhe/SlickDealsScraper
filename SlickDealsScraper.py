@@ -4,10 +4,10 @@ import requests
 import csv
 import re
 
-DEBUG = False
+DEBUG = True
 
 #### Set up where you are requesting from
-keyWords = "Switch"
+keyWords = ["Switch", "Steel"]
 # Add the user_input toe the google search url and request that
 domain = 'https://slickdeals.net/'
 source = requests.get(domain).text
@@ -23,18 +23,20 @@ csv_writer = csv.writer(csv_file)
 #### create soup from the page
 if(source is not None):
     soup = BeautifulSoup(source, 'lxml')
-    print("hello")
     #### Parse through the soup for the information you want
     # need the Div with a class of fpitem
     #for item in soup.find_all('div', class_= "fpitem  pctoff"):
     item = soup.find_all("div", class_= "fpItem")
-    print(item[1].prettify())
+    if(DEBUG):
+        print(item[1].prettify())
     #link = item[1].find("a", class_="itemTitle")
     # we now have the item title. we need to search it to check if it contains the keywords we are looking for
     link = item[1].find("a", class_="itemTitle")
-    print(link.text)
-    if("Arts" in link.text):
-        print("yes")
-    else:
-        print("no")
+    if(DEBUG):
+        print(link.text)
+    # we have the link to an item, scan through its conents to see if it matches
+    # with what we are searching for aka keyWords list
+    for key in keyWords:
+        if(key in link.text):
+            print("true")
 csv_file.close()
