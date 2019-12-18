@@ -7,7 +7,7 @@ import re
 DEBUG = True
 
 #### Set up where you are requesting from
-keyWords = ["Switch", "Steel"]
+keyWords = ["Switch", "Music"]
 # Add the user_input toe the google search url and request that
 domain = 'https://slickdeals.net/'
 source = requests.get(domain).text
@@ -38,5 +38,15 @@ if(source is not None):
     # with what we are searching for aka keyWords list
     for key in keyWords:
         if(key in link.text):
-            print("true")
+            if(DEBUG):
+                print("Keyword match")
+            # the key matches, add it to the csv
+            csv_file.write(link.text)
+            # print(item[1].find("a", class_= "viewDetailsBtn"))
+            urlDeal = item[1].find_all('a', href=True)
+            urlDeal = "slickdeals.net" + urlDeal[1]['href']
+            print(urlDeal)
+            # break out so you dont add it twice
+            break
+
 csv_file.close()
