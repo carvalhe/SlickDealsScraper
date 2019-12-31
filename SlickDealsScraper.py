@@ -6,52 +6,105 @@ import re
 
 DEBUG = False
 
-#### Set up where you are requesting from
-keyWords = ["Switch", "Music", "Dark", "Xbox"]
-# Add the user_input toe the google search url and request that
-domain = 'https://slickdeals.net/'
-source = requests.get(domain).text
+PREVIOUS_ITEMS = 'item_log.txt'
 
-#### Create a csv file to store information later
-# do a w for write
-csv_file = open('slickdeals_scrape.csv', 'w')
+### Function is used to set up and crawl through slick deals, returning a list
+def slick_crawler():
+    #### Set up where you are requesting from
+    keyWords = ["Switch", "PS4", "Xbox"]
+    # Add the user_input toe the google search url and request that
+    domain = 'https://slickdeals.net/'
+    source = requests.get(domain).text
 
-csv_writer = csv.writer(csv_file)
+    #### Create a csv file to store information later
+    # do a w for write
+    csv_file = open('slickdeals_scrape.csv', 'w')
+
+    # create list to store url links
+    deals = list()
+
+    csv_writer = csv.writer(csv_file)
+
+    #### create soup from the page
+    if(source is not None):
+        soup = BeautifulSoup(source, 'lxml')
+        #### Parse through the soup for the information you want
+        # need the Div with a class of fpitem
+        #for item in soup.find_all('div', class_= "fpitem  pctoff"):
+        #item = soup.find_all("div", class_= "fpItem")
+        for item in soup.find_all("div", class_= "fpItem"):
+            if(DEBUG):
+                print(item.prettify())
+            #link = item[1].find("a", class_="itemTitle")
+            # we now have the item title. we need to search it to check if it contains the keywords we are looking for
+            link = item.find("a", class_="itemTitle")
+            if(link == None):
+                continue
+            if(DEBUG):
+                print(link.text)
+            # we have the link to an item, scan through its conents to see if it matches
+            # with what we are searching for aka keyWords list
+            for key in keyWords:
+                if(key in link.text):
+                    if(DEBUG):
+                        print("Keyword match")
+                    # the key matches, add it to the csv
+                    #csv_file.write(link.text)
+                    # print(item[1].find("a", class_= "viewDetailsBtn"))
+                    urlDeal = item.find_all('a', href=True)
+                    urlDeal = "slickdeals.net" + urlDeal[1]['href']
+                    deals.append(urlDeal)
+                    if(DEBUG):
+                        print(urlDeal)
+                    csv_writer.writerow([key, urlDeal])
+                    # break out so you dont add it twice
+                    break
+    csv_file.close()
+    return deals
+
+### Function deletes duplicates from deals that are already seen before
+def delete_dups(deals, previousPosts):
+    # Open the previous items log for reading
+    file_ = open(previousPosts, 'r')
+    lines = file_.readlines()
+    removed_deals = list()
+    # return whats not in the file
+    for item in deals:
+        # add '\n' to the item name so that its the same as the txt file, or else
+        # it is seen as a different string even if they look equal
+        if(item + '\n' not in lines):
+            removed_deals.append(item)
+    file_.close()
+    if(DEBUG):
+        if(removed_deals == deals):
+            print('no changes made')
+        else:
+            print('deleted some deals')
+    return removed_deals
+
+### Function that adds the new deals to the Slick deals log
+def update_log(deals, previousPosts):
+    # Open the file for writing, don't use 'w' as it may overwrite and insert at the start
+    file_ = open(previousPosts, 'a+')
+    for deal in deals:
+        file_.write(deal)
+        file_.write('\n')
 
 
+### Function that posts this list of items to discord with webhooks
+def post_discord():
+    # https://discordapp.com/api/webhooks/657744524151619584/dRCHrKWADA1GMhiko6kEKwdVjY-gsJ7lOIUFlVsTWBh8qUP9BUlBaD3bE--5_yzHZKxz
+    return 1
 
-#### create soup from the page
-if(source is not None):
-    soup = BeautifulSoup(source, 'lxml')
-    #### Parse through the soup for the information you want
-    # need the Div with a class of fpitem
-    #for item in soup.find_all('div', class_= "fpitem  pctoff"):
-    #item = soup.find_all("div", class_= "fpItem")
-    for item in soup.find_all("div", class_= "fpItem"):
-        if(DEBUG):
-            print(item.prettify())
-        #link = item[1].find("a", class_="itemTitle")
-        # we now have the item title. we need to search it to check if it contains the keywords we are looking for
-        link = item.find("a", class_="itemTitle")
-        if(link == None):
-            continue
-        if(DEBUG):
-            print(link.text)
-        # we have the link to an item, scan through its conents to see if it matches
-        # with what we are searching for aka keyWords list
-        for key in keyWords:
-            if(key in link.text):
-                if(DEBUG):
-                    print("Keyword match")
-                # the key matches, add it to the csv
-                #csv_file.write(link.text)
-                # print(item[1].find("a", class_= "viewDetailsBtn"))
-                urlDeal = item.find_all('a', href=True)
-                urlDeal = "slickdeals.net" + urlDeal[1]['href']
-                if(DEBUG):
-                    print(urlDeal)
-                csv_writer.writerow([key, urlDeal])
-                # break out so you dont add it twice
-                break
+def main():
+    # Information on main, even on scripting in Python too
+    # https://stackoverflow.com/questions/29652264/why-is-my-python-function-not-being-executed
 
-csv_file.close()
+    deals = slick_crawler()
+    deals = delete_dups(deals, PREVIOUS_ITEMS)
+    print(deals)
+    update_log(deals, PREVIOUS_ITEMS)
+
+
+if __name__ == '__main__':
+    main()
