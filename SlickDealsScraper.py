@@ -1,29 +1,25 @@
 #### Switching branch name
 from bs4 import BeautifulSoup
 import requests
-import csv
 import re
 
-DEBUG = False
+DEBUG = True
 
 PREVIOUS_ITEMS = 'item_log.txt'
+RUG_URL = 'https://discordapp.com/api/webhooks/657744524151619584/dRCHrKWADA1GMhiko6kEKwdVjY-gsJ7lOIUFlVsTWBh8qUP9BUlBaD3bE--5_yzHZKxz'
+TEST_URL = 'https://discordapp.com/api/webhooks/661698988071845904/9vZ5Fi13Bi5NLpqOCWC7hvwYCXJc9SaZFeHfiDiEQtrR76npzaql25i1BPeFwx73yXHz'
 
 ### Function is used to set up and crawl through slick deals, returning a list
 def slick_crawler():
     #### Set up where you are requesting from
-    keyWords = ["Switch", "PS4", "Xbox"]
+    # Add or remove items to search slick deals website for
+    keyWords = ["Switch", "PS4", "Xbox", "RAM", "Keyboard", "Coffee", "Mouse", "TV"]
     # Add the user_input toe the google search url and request that
     domain = 'https://slickdeals.net/'
     source = requests.get(domain).text
 
-    #### Create a csv file to store information later
-    # do a w for write
-    csv_file = open('slickdeals_scrape.csv', 'w')
-
     # create list to store url links
     deals = list()
-
-    csv_writer = csv.writer(csv_file)
 
     #### create soup from the page
     if(source is not None):
@@ -48,18 +44,14 @@ def slick_crawler():
                 if(key in link.text):
                     if(DEBUG):
                         print("Keyword match")
-                    # the key matches, add it to the csv
-                    #csv_file.write(link.text)
                     # print(item[1].find("a", class_= "viewDetailsBtn"))
                     urlDeal = item.find_all('a', href=True)
-                    urlDeal = "slickdeals.net" + urlDeal[1]['href']
+                    urlDeal = "https://slickdeals.net" + urlDeal[1]['href']
                     deals.append(urlDeal)
                     if(DEBUG):
                         print(urlDeal)
-                    csv_writer.writerow([key, urlDeal])
                     # break out so you dont add it twice
                     break
-    csv_file.close()
     return deals
 
 ### Function deletes duplicates from deals that are already seen before
@@ -92,9 +84,16 @@ def update_log(deals, previousPosts):
 
 
 ### Function that posts this list of items to discord with webhooks
-def post_discord():
-    # https://discordapp.com/api/webhooks/657744524151619584/dRCHrKWADA1GMhiko6kEKwdVjY-gsJ7lOIUFlVsTWBh8qUP9BUlBaD3bE--5_yzHZKxz
-    return 1
+def post_discord(deals, url):
+    # information on get/post requests https://www.geeksforgeeks.org/get-post-requests-using-python/
+    # check if deals is empty, so you dont need to do anything
+    if not deals:
+        print('no deals to send to discord')
+        return
+    else:
+        for deal in deals:
+            r = requests.post(url, data={'content': deal})
+    
 
 def main():
     # Information on main, even on scripting in Python too
@@ -102,8 +101,14 @@ def main():
 
     deals = slick_crawler()
     deals = delete_dups(deals, PREVIOUS_ITEMS)
-    print(deals)
+    if(DEBUG):
+        print(deals)
     update_log(deals, PREVIOUS_ITEMS)
+    if(DEBUG):
+        post_discord(deals, TEST_URL)
+    else:
+        post_discord(deals, RUG_URL)
+
 
 
 if __name__ == '__main__':
