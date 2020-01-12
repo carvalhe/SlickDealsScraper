@@ -2,18 +2,19 @@
 from bs4 import BeautifulSoup
 import requests
 import re
+# Config file information https://stackoverflow.com/questions/5055042/whats-the-best-practice-using-a-settings-file-in-python
+import config
 
-DEBUG = True
+DEBUG = False
 
 PREVIOUS_ITEMS = 'item_log.txt'
-RUG_URL = 'https://discordapp.com/api/webhooks/657744524151619584/dRCHrKWADA1GMhiko6kEKwdVjY-gsJ7lOIUFlVsTWBh8qUP9BUlBaD3bE--5_yzHZKxz'
-TEST_URL = 'https://discordapp.com/api/webhooks/661698988071845904/9vZ5Fi13Bi5NLpqOCWC7hvwYCXJc9SaZFeHfiDiEQtrR76npzaql25i1BPeFwx73yXHz'
+
 
 ### Function is used to set up and crawl through slick deals, returning a list
 def slick_crawler():
     #### Set up where you are requesting from
     # Add or remove items to search slick deals website for
-    keyWords = ["Switch", "PS4", "Xbox", "RAM", "Keyboard", "Coffee", "Mouse", "TV"]
+    keyWords = ["switch", "PS4", "Xbox", "Gap", "Nintendo", "Twitch", "Camera", "Coffee"]
     # Add the user_input toe the google search url and request that
     domain = 'https://slickdeals.net/'
     source = requests.get(domain).text
@@ -32,12 +33,12 @@ def slick_crawler():
             if(DEBUG):
                 print(item.prettify())
             #link = item[1].find("a", class_="itemTitle")
-            # we now have the item title. we need to search it to check if it contains the keywords we are looking for
+            # get the items title
             link = item.find("a", class_="itemTitle")
+
+            # we now have the item title. we need to search it to check if it contains the keywords we are looking for
             if(link == None):
                 continue
-            if(DEBUG):
-                print(link.text)
             # we have the link to an item, scan through its conents to see if it matches
             # with what we are searching for aka keyWords list
             for key in keyWords:
@@ -105,9 +106,9 @@ def main():
         print(deals)
     update_log(deals, PREVIOUS_ITEMS)
     if(DEBUG):
-        post_discord(deals, TEST_URL)
+        post_discord(deals, config.URL['TEST'])
     else:
-        post_discord(deals, RUG_URL)
+        post_discord(deals, config.URL['IVAN'])
 
 
 
